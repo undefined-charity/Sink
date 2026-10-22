@@ -76,7 +76,8 @@ function getLinkHost(url: string): string | undefined {
 }
 
 const shortLink = computed(() => shortUrl(props.link.slug))
-const shortLinkLabel = computed(() => shortUrlLabel(props.link.slug))
+// Zero-width spaces let long hostnames wrap after a dot or slash, not mid-word.
+const shortLinkLabel = computed(() => shortUrlLabel(props.link.slug).replace(/([./])/g, '$1\u200B'))
 const linkIcon = computed(() => `https://unavatar.webp.se/${getLinkHost(props.link.url)}?fallback=https://sink.cool/icon.png`)
 const isExpired = computed(() => Boolean(props.link.expiration && props.link.expiration <= Math.floor(Date.now() / 1000)))
 const noteText = computed(() => props.link.comment?.trim() ?? '')
@@ -126,8 +127,8 @@ function copyLink() {
                   <TooltipTrigger as-child>
                     <NuxtLink
                       class="
-                        min-w-0 truncate rounded-md leading-5 font-bold
-                        outline-none
+                        line-clamp-3 min-w-0 rounded-md leading-5 font-bold
+                        wrap-break-word outline-none
                         group-hover:underline group-hover:underline-offset-4
                         after:absolute after:inset-0 after:z-10
                         after:rounded-2xl
@@ -136,13 +137,7 @@ function copyLink() {
                       "
                       :to="getDashboardLinkDetailLocation(link.slug)"
                     >
-                      <span class="sm:hidden">{{ shortLinkLabel }}</span>
-                      <span
-                        class="
-                          hidden
-                          sm:inline
-                        "
-                      >{{ shortLinkLabel }}</span>
+                      {{ shortLinkLabel }}
                     </NuxtLink>
                   </TooltipTrigger>
                   <TooltipContent class="max-w-[90svw] break-all">
@@ -153,20 +148,15 @@ function copyLink() {
               <NuxtLink
                 v-else
                 class="
-                  min-w-0 truncate rounded-md leading-5 font-bold outline-none
+                  line-clamp-3 min-w-0 rounded-md leading-5 font-bold
+                  wrap-break-word outline-none
                   group-hover:underline group-hover:underline-offset-4
                   after:absolute after:inset-0 after:z-10 after:rounded-2xl
                   focus-visible:after:ring-3 focus-visible:after:ring-ring/50
                 "
                 :to="getDashboardLinkDetailLocation(link.slug)"
               >
-                <span class="sm:hidden">{{ shortLinkLabel }}</span>
-                <span
-                  class="
-                    hidden
-                    sm:inline
-                  "
-                >{{ shortLinkLabel }}</span>
+                {{ shortLinkLabel }}
               </NuxtLink>
               <span
                 v-if="link.unsafe"
