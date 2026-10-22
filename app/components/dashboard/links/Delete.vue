@@ -6,11 +6,10 @@ import { toast } from 'vue-sonner'
 const props = defineProps<{
   link: Link
 }>()
-
 const emit = defineEmits<{
   closeAutoFocus: [event: Event]
 }>()
-
+const { shortUrlLabel } = useShortDomains()
 const { t } = useI18n()
 const linksStore = useDashboardLinksStore()
 const linksSearchStore = useDashboardLinksSearchStore()
@@ -75,9 +74,9 @@ function handleCloseAutoFocus(event: Event) {
       @escape-key-down="handleEscapeKeyDown"
     >
       <AlertDialogHeader>
-        <AlertDialogTitle>{{ $t('links.dialogs.delete.title', { slug: link.slug }) }}</AlertDialogTitle>
+        <AlertDialogTitle>{{ $t('links.dialogs.delete.title', { slug: shortUrlLabel(link.slug) }) }}</AlertDialogTitle>
         <AlertDialogDescription>
-          {{ $t('links.dialogs.delete.description', { slug: link.slug }) }}
+          {{ $t('links.dialogs.delete.description', { slug: shortUrlLabel(link.slug) }) }}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>

@@ -160,7 +160,7 @@ else {
           text-foreground
         ` : `text-muted-foreground`"
       >
-        {{ selectedLinks.length ? selectedLinks.join(', ') : $t('dashboard.filter_placeholder') }}
+        {{ selectedLinks.length ? selectedLinks.map(shortUrlLabel).join(', ') : $t('dashboard.filter_placeholder') }}
       </div>
       <ChevronsUpDown aria-hidden="true" class="ml-2 size-4 shrink-0 opacity-50" />
     </Button>
@@ -207,7 +207,7 @@ else {
             {{ $t('dashboard.selected_count', { count: selectedLinks.length }) }}
           </span>
           <span aria-hidden="true">·</span>
-          <span class="min-w-0 truncate">{{ selectedLinks.join(', ') }}</span>
+          <span class="min-w-0 truncate">{{ selectedLinks.map(shortUrlLabel).join(', ') }}</span>
         </p>
         <Button type="button" variant="ghost" size="sm" @click="clearSelectedLinks">
           {{ $t('dashboard.clear_selection') }}
