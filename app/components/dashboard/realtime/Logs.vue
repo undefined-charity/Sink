@@ -4,7 +4,7 @@ const emit = defineEmits<{
 }>()
 
 const { logs, loading, error, hasSnapshot, isPaused, retry } = useRealtimeLogs()
-const { shortUrlLabel } = useShortDomains()
+const { linkLabel } = useLinkLabels()
 
 watch(error, value => emit('errorChange', value), { immediate: true })
 </script>
@@ -82,7 +82,7 @@ watch(error, value => emit('errorChange', value), { immediate: true })
         <SparkUiNotification
           v-for="item in logs"
           :key="item.id"
-          :name="shortUrlLabel(item.slug)"
+          :name="linkLabel(item.slug)"
           :description="[item.os, item.browser].filter(Boolean).join(' ')"
           :icon="getFlag(item.country || '')"
           :time="item.timestamp"

@@ -4,7 +4,7 @@ const props = defineProps<{
 }>()
 
 const route = useRoute()
-const { shortUrlLabel } = useShortDomains()
+const { linkLabel } = useLinkLabels()
 const detailLocation = computed(() => props.name
   ? getDashboardLinkDetailLocation(props.name, route.query)
   : { path: route.path, query: route.query })
@@ -15,6 +15,6 @@ const detailLocation = computed(() => props.name
     :to="detailLocation"
     class="inline-flex w-full min-w-0 items-start justify-start"
   >
-    <span class="w-full break-all">{{ name ? shortUrlLabel(name) : name }}</span>
+    <span class="w-full break-all">{{ name ? linkLabel(name) : name }}</span>
   </NuxtLink>
 </template>
