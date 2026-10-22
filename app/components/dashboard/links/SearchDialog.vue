@@ -8,6 +8,7 @@ import { ListboxFilter } from 'reka-ui'
 defineOptions({
   inheritAttrs: false,
 })
+const { shortUrlLabel } = useShortDomains()
 const [TriggerTemplate, TriggerComponent] = createReusableTemplate()
 const [SearchTemplate, SearchComponent] = createReusableTemplate()
 
@@ -221,7 +222,7 @@ watch([searchTerm, () => linksStore.status, () => linksStore.tag], ([query]) => 
             <div class="min-w-0 flex-1 space-y-1 text-left">
               <div class="flex min-w-0 items-baseline gap-2">
                 <div class="min-w-0 flex-1 truncate text-sm font-medium">
-                  {{ link.slug }}
+                  {{ shortUrlLabel(link.slug) }}
                 </div>
                 <div
                   v-if="link.comment"

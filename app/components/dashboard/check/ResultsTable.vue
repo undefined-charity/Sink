@@ -6,7 +6,7 @@ defineProps<{
   results: LinkCheckResult[]
   emptyMessage: string
 }>()
-
+const { shortUrlLabel } = useShortDomains()
 function resultLabel(result: LinkCheckResult): string {
   if (result.status === 0)
     return 'check.result.network_error'
@@ -57,7 +57,7 @@ function resultVariant(result: LinkCheckResult): 'default' | 'secondary' | 'dest
         <TableRow v-for="(result, index) in results" :key="`${result.slug}-${result.status}-${result.checkedAt}-${index}`">
           <TableCell class="font-medium">
             <div class="truncate" :title="result.slug">
-              {{ result.slug }}
+              {{ shortUrlLabel(result.slug) }}
             </div>
           </TableCell>
           <TableCell>

@@ -2,6 +2,7 @@
 import type { Link } from '@/types'
 import { AlertCircle, Inbox } from '@lucide/vue'
 
+const { shortUrlLabel } = useShortDomains()
 definePageMeta({
   layout: 'dashboard',
 })
@@ -83,7 +84,7 @@ linksStore.onLinkUpdate(({ link: updatedLink, type }) => {
 <template>
   <main class="space-y-6">
     <h1 class="sr-only">
-      {{ link?.slug ? `${$t('links.group_title')}: ${link.slug}` : $t('links.group_title') }}
+      {{ link?.slug ? `${$t('links.group_title')}: ${shortUrlLabel(link.slug)}` : $t('links.group_title') }}
     </h1>
     <Teleport to="#dashboard-header-actions" defer>
       <DashboardDatePicker />

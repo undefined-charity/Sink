@@ -3,6 +3,7 @@ import type { LinkUpdateType } from '@/types'
 import type { DashboardLink, DashboardLinkListResponse } from '@/types/dashboard-links'
 import { AlertCircle, Inbox, LoaderCircle } from '@lucide/vue'
 import { useInfiniteScroll } from '@vueuse/core'
+import { slugShortDomain } from '#shared/utils/short-domains'
 
 const linksStore = useDashboardLinksStore()
 
@@ -41,6 +42,7 @@ async function getLinks() {
         sort: linksStore.sortBy,
         status: linksStore.status,
         tag: linksStore.tag,
+        domain: linksStore.domain,
       },
     })
 
@@ -93,14 +95,17 @@ useInfiniteScroll(
 )
 
 watch(
-  [() => linksStore.sortBy, () => linksStore.status, () => linksStore.tag],
+  [() => linksStore.sortBy, () => linksStore.status, () => linksStore.tag, () => linksStore.domain],
   resetAndLoad,
 )
+
+const { domains: shortDomains } = useShortDomains()
 
 function matchesCurrentFilters(link: DashboardLink) {
   const isExpired = Boolean(link.expiration && link.expiration <= Math.floor(Date.now() / 1000))
   return (linksStore.status === 'expired') === isExpired
     && (!linksStore.tag || link.tags?.includes(linksStore.tag))
+    && (!linksStore.domain || slugShortDomain(link.slug, shortDomains)?.domain === linksStore.domain)
 }
 
 function updateLinkList(link: DashboardLink, type: LinkUpdateType) {

@@ -6,6 +6,7 @@ import { and, asc, count, desc, eq, exists, gt, inArray, isNotNull, isNull, lt, 
 import { drizzle } from 'drizzle-orm/d1'
 import { createError } from 'h3'
 import { parseURL, stringifyParsedURL } from 'ufo'
+import { parseShortDomains } from '#shared/utils/short-domains'
 import { links, linkTags, linkTombstones, tags } from '../../database/schema'
 import { getExpiration } from '../../utils/time'
 
@@ -24,6 +25,7 @@ export interface ListLinksOptions {
   sort?: LinkSortBy
   tag?: string
   status?: LinkStatus
+  domain?: string
   backfillExpiration?: boolean
 }
 
@@ -50,6 +52,7 @@ interface D1Cursor {
   createdAt?: number
   tag?: string
   status: LinkStatus
+  domain?: string
 }
 
 function withoutQuery(url: string): string {
@@ -310,14 +313,14 @@ function encodeCursor(cursor: D1Cursor): string {
   return `${D1_CURSOR_PREFIX}${btoa(JSON.stringify(cursor))}`
 }
 
-function decodeCursor(cursor: string | undefined, sort: LinkSortBy, tag: string | undefined, status: LinkStatus): D1Cursor | undefined {
+function decodeCursor(cursor: string | undefined, sort: LinkSortBy, tag: string | undefined, status: LinkStatus, domain?: string): D1Cursor | undefined {
   if (!cursor)
     return undefined
   if (!cursor.startsWith(D1_CURSOR_PREFIX))
     throw createError({ status: 400, statusText: 'Invalid pagination cursor' })
   try {
     const decoded = JSON.parse(atob(cursor.slice(D1_CURSOR_PREFIX.length))) as D1Cursor
-    if (decoded.sort !== sort || decoded.tag !== tag || decoded.status !== status || typeof decoded.slug !== 'string')
+    if (decoded.sort !== sort || decoded.tag !== tag || decoded.status !== status || decoded.domain !== domain || typeof decoded.slug !== 'string')
       throw new Error('Cursor does not match sort')
     if ((sort === 'newest' || sort === 'oldest') && typeof decoded.createdAt !== 'number')
       throw new Error('Cursor is missing creation time')
@@ -328,11 +331,30 @@ function decodeCursor(cursor: string | undefined, sort: LinkSortBy, tag: string 
   }
 }
 
+// undefined-charity fork: a domain's links are its prefix itself or `<prefix>-*`;
+// the primary (unprefixed) domain owns every slug no other domain claims.
+function shortDomainCondition(event: H3Event, domain: string | undefined) {
+  if (!domain)
+    return undefined
+  const domains = parseShortDomains(useRuntimeConfig(event).public.shortDomains)
+  const target = domains.find(d => d.domain === domain)
+  if (!target)
+    return sql`0`
+  const owns = (prefix: string) => or(
+    sql`lower(${links.slug}) = ${prefix}`,
+    sql`lower(${links.slug}) like ${`${prefix}-%`}`,
+  )!
+  if (target.prefix)
+    return owns(target.prefix)
+  const others = domains.filter(d => d.prefix).map(d => owns(d.prefix))
+  return others.length ? sql`not (${or(...others)})` : undefined
+}
+
 export async function d1ListLinks(event: H3Event, options: ListLinksOptions): Promise<ListLinksResult> {
   const db = getDatabase(event)
   const sort = options.sort ?? 'newest'
   const status = options.status ?? 'active'
-  const cursor = decodeCursor(options.cursor, sort, options.tag, status)
+  const cursor = decodeCursor(options.cursor, sort, options.tag, status, options.domain)
   let cursorCondition
   let order
 
@@ -354,7 +376,8 @@ export async function d1ListLinks(event: H3Event, options: ListLinksOptions): Pr
   }
 
   const tagCondition = exactTagCondition(db, options.tag)
-  const rows = await db.select().from(links).where(and(statusCondition(status), tagCondition, cursorCondition)).orderBy(...order).limit(options.limit + 1)
+  const domainCondition = shortDomainCondition(event, options.domain)
+  const rows = await db.select().from(links).where(and(statusCondition(status), tagCondition, domainCondition, cursorCondition)).orderBy(...order).limit(options.limit + 1)
   const hasMore = rows.length > options.limit
   const page = hasMore ? rows.slice(0, options.limit) : rows
   if (options.backfillExpiration) {
@@ -365,7 +388,7 @@ export async function d1ListLinks(event: H3Event, options: ListLinksOptions): Pr
   return {
     links: await rowsToLinks(event, page),
     list_complete: !hasMore,
-    cursor: hasMore && last ? encodeCursor({ sort, slug: last.slug, createdAt: last.createdAt, tag: options.tag, status }) : undefined,
+    cursor: hasMore && last ? encodeCursor({ sort, slug: last.slug, createdAt: last.createdAt, tag: options.tag, status, domain: options.domain }) : undefined,
   }
 }
 

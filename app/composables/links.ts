@@ -14,6 +14,8 @@ export const useDashboardLinksStore = defineStore('dashboard-links', () => {
   const sortBy = ref<DashboardLinkSort>('newest')
   const status = ref<DashboardLinkStatus>('active')
   const tag = ref<string>()
+  // undefined-charity fork: short-domain filter (multi-domain mode)
+  const domain = ref<string>()
 
   const showLinkEditor = ref(false)
   const editingLink = ref<Record<string, unknown> | null>(null)
@@ -44,12 +46,14 @@ export const useDashboardLinksStore = defineStore('dashboard-links', () => {
     sortBy.value = state.sort
     status.value = state.status
     tag.value = state.tag
+    domain.value = state.domain
   }
 
   return {
     sortBy,
     status,
     tag,
+    domain,
     showLinkEditor,
     editingLink,
     openLinkEditor,

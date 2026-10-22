@@ -129,6 +129,7 @@ export function useDashboardLinksRouteState() {
       status: store.status,
       sort: store.sortBy,
       tag: store.tag,
+      domain: store.domain,
     })
   }
 
@@ -150,7 +151,7 @@ export function useDashboardLinksRouteState() {
   )
 
   watch(
-    [() => store.status, () => store.sortBy, () => store.tag],
+    [() => store.status, () => store.sortBy, () => store.tag, () => store.domain],
     () => {
       if (applyingRoute || route.path !== routePath)
         return

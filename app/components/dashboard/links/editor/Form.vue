@@ -6,6 +6,7 @@ import { useDebounceFn } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import { z } from 'zod'
 import { MAX_URL_LENGTH, nanoid, SlugSchema } from '#shared/schemas/link'
+import { buildSlug, isValidShortSubdomain, primaryShortDomain } from '#shared/utils/short-domains'
 
 const props = defineProps<{
   link: Partial<DashboardLink>
@@ -21,7 +22,21 @@ const emit = defineEmits<{
 
 const { t, locale } = useI18n()
 const linksSearchStore = useDashboardLinksSearchStore()
-const requestUrl = useRequestURL()
+const { domains, multiDomain, shortUrl, shortUrlLabel } = useShortDomains()
+
+// undefined-charity fork: with several short domains, new links are picked as
+// domain + subdomain + path and the slug is derived (see shared/utils/short-domains.ts).
+const pickUrl = multiDomain && !props.isEdit
+const urlDomain = ref(primaryShortDomain(domains)?.domain ?? '')
+const urlSub = ref('')
+const urlPath = ref('')
+const selectedDomain = computed(() => domains.find(d => d.domain === urlDomain.value))
+const pickedUrl = computed(() => {
+  const domain = urlDomain.value
+  const sub = urlSub.value.trim().toLowerCase()
+  const path = urlPath.value.trim().toLowerCase().split('/').filter(Boolean).join('/')
+  return `https://${sub ? `${sub}.` : ''}${domain}/${path}`
+})
 
 const slugValidator = SlugSchema
 const commentValidator = z.string().max(500).optional()
@@ -60,7 +75,19 @@ const tagsInput = useTemplateRef<{ commit: () => boolean }>('tagsInput')
 watch(isSubmitting, value => emit('update:submitting', value), { immediate: true })
 watch(isDirty, value => emit('update:dirty', value), { immediate: true })
 
-const validateSlug = makeZodValidator(slugValidator)
+const validateSlugValue = makeZodValidator(slugValidator)
+function validateSlug(context: { value: unknown }) {
+  if (pickUrl) {
+    if (!isValidShortSubdomain(urlSub.value))
+      return 'Subdomain can only use letters and numbers.'
+    if (!context.value)
+      return 'Add a subdomain or a path. The bare domain is the site home page.'
+    if (validateSlugValue(context))
+      return 'Path can only use letters, numbers, - and /.'
+    return undefined
+  }
+  return validateSlugValue(context)
+}
 const validateComment = makeZodValidator(commentValidator)
 
 function makeUrlValidator(optional: boolean) {
@@ -98,11 +125,24 @@ function randomSlug() {
 }
 
 function initializeRandomSlug() {
+  if (pickUrl) {
+    urlSub.value = ''
+    urlPath.value = ''
+    form.reset({ ...form.state.values, slug: selectedDomain.value ? buildSlug(selectedDomain.value, '', '') : '' })
+    return
+  }
   form.reset({
     ...form.state.values,
     slug: generateSlug(),
   })
 }
+
+function syncPickedSlug() {
+  if (pickUrl && selectedDomain.value)
+    form.setFieldValue('slug', buildSlug(selectedDomain.value, urlSub.value, urlPath.value))
+}
+
+watch([urlDomain, urlSub, urlPath], syncPickedSlug)
 
 const aiSlugPending = ref(false)
 async function aiSlug() {
@@ -159,7 +199,7 @@ watch(currentUrl, (url) => {
   void findDuplicateLink(url, generation)
 }, { immediate: true })
 
-const shortDuplicateLink = computed(() => duplicateLink.value ? `${requestUrl.origin}/${duplicateLink.value.slug}` : '')
+const shortDuplicateLink = computed(() => duplicateLink.value ? shortUrl(duplicateLink.value.slug) : '')
 
 const { previewMode } = useRuntimeConfig().public
 const isExpiredLink = computed(() => Boolean(
@@ -299,7 +339,63 @@ defineExpose({ initializeRandomSlug })
           name="slug"
           :validators="{ onBlur: validateSlug, onSubmit: validateSlug }"
         >
-          <Field :data-invalid="isInvalid(field)">
+          <Field v-if="pickUrl" :data-invalid="isInvalid(field)">
+            <FieldLabel :for="`${formId}-domain`">
+              Short link
+            </FieldLabel>
+            <Select v-model="urlDomain">
+              <SelectTrigger :id="`${formId}-domain`" class="w-full" aria-label="Domain">
+                <SelectValue placeholder="Domain" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="d in domains" :key="d.domain" :value="d.domain">
+                  {{ d.domain }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <div class="flex min-w-0 items-center gap-2">
+              <Input
+                :id="`${formId}-${field.name}`"
+                v-model="urlSub"
+                class="min-w-0 flex-1"
+                aria-label="Subdomain (leave empty for the bare domain)"
+                placeholder="subdomain (optional)"
+                autocomplete="off"
+                autocapitalize="none"
+                spellcheck="false"
+                :aria-invalid="getAriaInvalid(field)"
+                @blur="field.handleBlur"
+              />
+              <span class="shrink-0 text-sm text-muted-foreground">.{{ urlDomain }}/</span>
+              <Input
+                :id="`${formId}-path`"
+                v-model="urlPath"
+                class="min-w-0 flex-1"
+                aria-label="Path after the slash"
+                placeholder="path (optional)"
+                autocomplete="off"
+                autocapitalize="none"
+                spellcheck="false"
+                :aria-invalid="getAriaInvalid(field)"
+                @blur="field.handleBlur"
+              />
+            </div>
+            <FieldDescription v-if="!isInvalid(field)">
+              <span class="font-medium break-all text-foreground">{{ pickedUrl }}</span>
+              <span
+                v-if="field.state.value && shortUrl(field.state.value) !== pickedUrl.replace(/\/$/, '')" class="
+                  break-all
+                "
+              >
+                · also {{ shortUrlLabel(field.state.value) }}
+              </span>
+            </FieldDescription>
+            <FieldError
+              v-if="isInvalid(field)"
+              :errors="formatErrors(field.state.meta.errors)"
+            />
+          </Field>
+          <Field v-else :data-invalid="isInvalid(field)">
             <div class="flex items-center justify-between">
               <FieldLabel :for="`${formId}-${field.name}`">
                 {{ $t('links.form.slug') }}
@@ -343,6 +439,9 @@ defineExpose({ initializeRandomSlug })
               @blur="field.handleBlur"
               @input="field.handleChange(($event.target as HTMLInputElement).value)"
             />
+            <FieldDescription v-if="isEdit && multiDomain && field.state.value">
+              <span class="break-all">{{ shortUrl(field.state.value) }}</span>
+            </FieldDescription>
             <FieldError
               v-if="isInvalid(field)"
               :errors="formatErrors(field.state.meta.errors)"

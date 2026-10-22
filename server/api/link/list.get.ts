@@ -40,14 +40,21 @@ defineRouteMeta({
         schema: { type: 'string', enum: ['active', 'expired', 'all'], default: 'active' },
         description: 'Expiration status filter',
       },
+      {
+        name: 'domain',
+        in: 'query',
+        required: false,
+        schema: { type: 'string' },
+        description: 'Only links on this short domain (multi-domain mode)',
+      },
     ],
   },
 })
 
 export default eventHandler(async (event) => {
-  const { limit, cursor, sort, tag, status } = await getValidatedQuery(event, ListLinksQuerySchema.parse)
+  const { limit, cursor, sort, tag, status, domain } = await getValidatedQuery(event, ListLinksQuerySchema.parse)
 
-  const list = await listLinks(event, { limit, cursor, sort, tag, status })
+  const list = await listLinks(event, { limit, cursor, sort, tag, status, domain })
   return {
     ...list,
     links: sanitizeLinksPassword(list.links),

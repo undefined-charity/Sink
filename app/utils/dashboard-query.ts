@@ -52,6 +52,7 @@ export interface LinksQueryState {
   status: DashboardLinkStatusQuery
   sort: DashboardLinkSort
   tag?: string
+  domain?: string
 }
 
 export interface DashboardSlugFilters {
@@ -180,6 +181,7 @@ export function parseLinksQuery(query: DashboardQuery): LinksQueryState {
     status: enumValue(query.status, LINK_STATUSES) ?? DEFAULT_LINK_STATUS,
     sort: enumValue(query.sort, LINK_SORTS) ?? DEFAULT_LINK_SORT,
     tag: tag && tag.length <= 32 ? tag : undefined,
+    domain: firstQueryValue(query.domain)?.trim().toLowerCase() || undefined,
   }
 }
 
@@ -191,6 +193,8 @@ export function serializeLinksQuery(state: LinksQueryState): DashboardQueryOutpu
     query.sort = state.sort
   if (state.tag)
     query.tag = state.tag
+  if (state.domain)
+    query.domain = state.domain
   return query
 }
 

@@ -68,16 +68,15 @@ const counterErrorIds = inject(LINKS_COUNTER_ERROR_IDS_KEY)
 const retryCounters = inject(RETRY_LINK_COUNTERS_KEY)
 const countersError = computed(() => counterErrorIds?.value.has(props.link.id) ?? false)
 
-const requestUrl = useRequestURL()
-const host = requestUrl.host
-const origin = requestUrl.origin
+const { shortUrl, shortUrlLabel } = useShortDomains()
 
 function getLinkHost(url: string): string | undefined {
   const { host } = parseURL(url)
   return host
 }
 
-const shortLink = computed(() => `${origin}/${props.link.slug}`)
+const shortLink = computed(() => shortUrl(props.link.slug))
+const shortLinkLabel = computed(() => shortUrlLabel(props.link.slug))
 const linkIcon = computed(() => `https://unavatar.webp.se/${getLinkHost(props.link.url)}?fallback=https://sink.cool/icon.png`)
 const isExpired = computed(() => Boolean(props.link.expiration && props.link.expiration <= Math.floor(Date.now() / 1000)))
 const noteText = computed(() => props.link.comment?.trim() ?? '')
@@ -137,13 +136,13 @@ function copyLink() {
                       "
                       :to="getDashboardLinkDetailLocation(link.slug)"
                     >
-                      <span class="sm:hidden">{{ link.slug }}</span>
+                      <span class="sm:hidden">{{ shortLinkLabel }}</span>
                       <span
                         class="
                           hidden
                           sm:inline
                         "
-                      >{{ host }}/{{ link.slug }}</span>
+                      >{{ shortLinkLabel }}</span>
                     </NuxtLink>
                   </TooltipTrigger>
                   <TooltipContent class="max-w-[90svw] break-all">
@@ -161,13 +160,13 @@ function copyLink() {
                 "
                 :to="getDashboardLinkDetailLocation(link.slug)"
               >
-                <span class="sm:hidden">{{ link.slug }}</span>
+                <span class="sm:hidden">{{ shortLinkLabel }}</span>
                 <span
                   class="
                     hidden
                     sm:inline
                   "
-                >{{ host }}/{{ link.slug }}</span>
+                >{{ shortLinkLabel }}</span>
               </NuxtLink>
               <span
                 v-if="link.unsafe"

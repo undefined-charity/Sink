@@ -6,13 +6,13 @@ withDefaults(defineProps<{
 }>(), {
   link: null,
 })
-
+const { shortUrlLabel } = useShortDomains()
 const analysisStore = useDashboardAnalysisStore()
 </script>
 
 <template>
   <h2 v-if="link" class="text-xl/10 font-bold">
-    {{ $t('dashboard.stats', { slug: link.slug }) }}
+    {{ $t('dashboard.stats', { slug: shortUrlLabel(link.slug) }) }}
   </h2>
   <DashboardAnalysisCounters />
   <Tabs v-model="analysisStore.viewMode" default-value="trend">

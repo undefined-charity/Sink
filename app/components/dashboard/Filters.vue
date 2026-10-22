@@ -6,8 +6,6 @@ import { createReusableTemplate, useMediaQuery, useWindowSize, watchDebounced } 
 import { ListboxFilter } from 'reka-ui'
 import { VList } from 'virtua/vue'
 
-type FilterLink = Pick<DashboardLinkSearchItem, 'slug'>
-
 const props = withDefaults(defineProps<{
   filters?: DashboardSlugFilters
   debounce?: number
@@ -16,10 +14,11 @@ const props = withDefaults(defineProps<{
 }>(), {
   debounce: 500,
 })
-
 const emit = defineEmits<{
   change: [key: string, value: string]
 }>()
+const { shortUrlLabel } = useShortDomains()
+type FilterLink = Pick<DashboardLinkSearchItem, 'slug'>
 
 const [TriggerTemplate, TriggerComponent] = createReusableTemplate()
 const [FilterTemplate, FilterComponent] = createReusableTemplate()
@@ -287,7 +286,7 @@ else {
                   aria-hidden="true"
                 />
               </CommandShortcut>
-              <span class="min-w-0 flex-1 truncate">{{ link.slug }}</span>
+              <span class="min-w-0 flex-1 truncate">{{ shortUrlLabel(link.slug) }}</span>
             </CommandItem>
           </VList>
         </CommandGroup>

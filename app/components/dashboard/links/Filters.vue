@@ -7,6 +7,12 @@ interface TagCount {
 }
 
 const linksStore = useDashboardLinksStore()
+const { domains: shortDomains, multiDomain } = useShortDomains()
+const allDomainsValue = '__sink_all_domains__'
+
+function selectDomain(value: unknown) {
+  linksStore.domain = typeof value === 'string' && value !== allDomainsValue ? value : undefined
+}
 const allTagsValue = '__sink_all_tags__'
 const tags = shallowRef<TagCount[]>([])
 const loading = shallowRef(false)
@@ -71,6 +77,25 @@ linksStore.onLinkUpdate(() => void fetchTags())
       "
     >
       <DashboardLinksSort />
+      <Select v-if="multiDomain" :model-value="linksStore.domain ?? allDomainsValue" @update:model-value="selectDomain">
+        <SelectTrigger
+          class="
+            min-w-0 flex-1
+            md:w-56 md:flex-none
+          "
+          aria-label="Domain"
+        >
+          <SelectValue placeholder="All domains" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem :value="allDomainsValue">
+            All domains
+          </SelectItem>
+          <SelectItem v-for="d in shortDomains" :key="d.domain" :value="d.domain">
+            {{ d.domain }}
+          </SelectItem>
+        </SelectContent>
+      </Select>
       <Select :model-value="linksStore.tag ?? allTagsValue" :disabled="loading" @update:model-value="selectTag">
         <SelectTrigger
           class="

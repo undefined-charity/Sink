@@ -150,6 +150,8 @@ export const ListLinksQuerySchema = z.object({
   sort: z.enum(['az', 'za', 'newest', 'oldest']).default('newest'),
   tag: LinkTagFilterSchema.optional(),
   status: LinkStatusFilterSchema,
+  // undefined-charity fork: only links on this short domain (NUXT_PUBLIC_SHORT_DOMAINS).
+  domain: z.string().trim().toLowerCase().max(253).optional(),
 })
 
 export const LinkSlugQuerySchema = z.object({
