@@ -48,6 +48,8 @@ export default defineNuxtConfig({
       linkProxyEnabled: false,
       // undefined-charity fork: multi-domain short links, see shared/utils/short-domains.ts
       shortDomains: '',
+      // undefined-charity fork: default QR centre logo (URL or /path); empty = the target site's icon.
+      qrLogo: '',
     },
   },
   routeRules: {

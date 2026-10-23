@@ -69,3 +69,28 @@ describe('renderEventPageHtml', () => {
     expect(EventPageSchema.safeParse({ title: 'x', accent: 'red' }).success).toBe(false)
   })
 })
+
+describe('rich editor HTML', () => {
+  const render = (body: string) => renderEventPageHtml(EventPageSchema.parse({ title: 'T', format: 'html', body }), options())
+
+  it('keeps formatting, buttons, callouts and images, resolving event links', () => {
+    const html = render('<h2 style="text-align: center">Hi</h2><p><span style="color: #ff0000; font-family: &quot;Playfair Display&quot;, serif; font-size: 24px">Big</span> <u>u</u> <s>s</s></p><p><a class="button" href="/rsvp">RSVP</a></p><aside class="callout"><p>Box</p></aside><img src="/_assets/images/frost/a.png" alt="Map">')
+    expect(html).toContain('<h2 style="text-align:center;">Hi</h2>')
+    expect(html).toMatch(/<span style="color:#ff0000; font-family:"?(&quot;)?Playfair Display/)
+    expect(html).toContain('<a class="button" href="https://frost.puppy.events/rsvp">RSVP</a>')
+    expect(html).toContain('<aside class="callout"><p>Box</p></aside>')
+    expect(html).toContain('<img src="https://puppy.events/_assets/images/frost/a.png" alt="Map">')
+    expect(html).toContain('family=Playfair+Display')
+  })
+
+  it('strips scripts, handlers, unsafe URLs, foreign classes and CSS tricks', () => {
+    const html = render('<script>alert(1)</script><p onclick="x()" class="evil">ok</p><a href="javascript:alert(1)">bad</a><img src="x" onerror="alert(1)"><span style="background-image: url(https://evil); color: red">s</span><iframe src="https://evil"></iframe><style>body{}</style>')
+    const body = html.slice(html.indexOf('<div class="body">'))
+    expect(body).not.toMatch(/<script|onclick|onerror|javascript:|url\(|<iframe|<style|class="evil"/)
+    expect(body).toContain('<p>ok</p>')
+  })
+
+  it('loads no extra Google fonts when none are used', () => {
+    expect(render('<p>plain</p>')).not.toContain('Playfair')
+  })
+})

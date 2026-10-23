@@ -14,41 +14,14 @@
 
 import type { Tokens } from 'marked'
 import type { EventPage } from '../schemas/event-page'
+import type { EventPageRenderOptions } from './event-page-links'
 import { Marked } from 'marked'
+import { googleFontsHref } from './event-page-fonts'
+import { escapeHtml, resolveEventHref } from './event-page-links'
+import { sanitizeEventHtml } from './event-page-sanitize'
 
-export interface EventPageRenderOptions {
-  slug: string
-  /** Public URL of the page itself (canonical / og:url). */
-  pageUrl: string
-  /** Origin that serves /_assets uploads and /event theme files, e.g. https://puppy.events */
-  assetOrigin: string
-  /** Public URL for a slug (the multi-domain mapping). */
-  shortUrl: (slug: string) => string
-}
-
-const SAFE_URL = /^(?:https?:|mailto:|tel:)/i
-
-export function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
-
-export function resolveEventHref(href: string, options: EventPageRenderOptions): string | undefined {
-  const value = href.trim()
-  if (value.startsWith('/_assets/') || value.startsWith('/event/'))
-    return `${options.assetOrigin}${value}`
-  if (value.startsWith('/') && !value.startsWith('//')) {
-    const path = value.split(/[?#]/)[0]!.split('/').filter(Boolean).join('-').toLowerCase()
-    return path ? options.shortUrl(`${options.slug}-${path}`) : options.pageUrl
-  }
-  if (value.startsWith('#'))
-    return value
-  return SAFE_URL.test(value) ? value : undefined
-}
+export type { EventPageRenderOptions } from './event-page-links'
+export { escapeHtml, resolveEventHref } from './event-page-links'
 
 export function renderEventMarkdown(markdown: string, options: EventPageRenderOptions): string {
   const marked = new Marked({
@@ -98,8 +71,14 @@ function plainSummary(page: EventPage): string {
   return [parts, page.host || firstLine].filter(Boolean).join(' — ').slice(0, 300)
 }
 
+/** The page body as HTML: rich-editor HTML (sanitised) or legacy Markdown. */
+export function renderEventBody(page: EventPage, options: EventPageRenderOptions): string {
+  return page.format === 'html' ? sanitizeEventHtml(page.body, options) : renderEventMarkdown(page.body, options)
+}
+
 export function renderEventPageHtml(page: EventPage, options: EventPageRenderOptions): string {
   const e = escapeHtml
+  const body = renderEventBody(page, options)
   const hero = page.hero ? resolveEventHref(page.hero, options) : undefined
   const whereUrl = page.whereUrl ? resolveEventHref(page.whereUrl, options) : undefined
   const summary = plainSummary(page)
@@ -127,7 +106,7 @@ ${hero ? `<meta property="og:image" content="${e(hero)}">\n<meta name="twitter:c
 <link rel="icon" href="${e(logo)}" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="${e(googleFontsHref(body))}" rel="stylesheet">
 <style>
 :root{--accent:${e(page.accent)};--bg:#fff;--card:rgba(244,244,245,.86);--text:#222;--muted:#555;--heading:#111;--line:rgba(0,0,0,.08)}
 html[data-bg="dark"]{--bg:#111114;--card:rgba(30,30,36,.92);--text:#e7e7ea;--muted:#a1a1aa;--heading:#fafafa;--line:rgba(255,255,255,.1)}
@@ -155,7 +134,11 @@ figure{margin:20px 0}
 figure img{display:block;max-width:100%;height:auto;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.15)}
 figcaption{margin-top:6px;font-size:14px;color:var(--muted)}
 .cta{margin:18px 0}
-.button{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;font-weight:600;padding:9px 16px;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.body img{max-width:100%;height:auto;border-radius:8px}
+.body p:empty{min-height:1em}
+.body mark{padding:0 .15em;border-radius:3px}
+.body a.button{margin:6px 0}
+.button{display:inline-block;line-height:1.4;background:var(--accent);color:#fff;text-decoration:none;font-weight:600;padding:9px 16px;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.15)}
 .button:hover{filter:brightness(1.08)}
 .callout{margin:28px 0;padding:4px 24px;border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:10px}
 .callout h2,.callout h3{margin-top:18px}
@@ -178,7 +161,7 @@ ${page.when ? `<p class="when">${e(page.when)}</p>` : ''}
 ${meta ? `<p class="meta">${meta}</p>` : ''}
 ${hero ? `<img class="hero" src="${e(hero)}" alt="">` : ''}
 <div class="body">
-${renderEventMarkdown(page.body, options)}
+${body}
 </div>
 </article>
 </main>

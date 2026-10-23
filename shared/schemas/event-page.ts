@@ -11,7 +11,9 @@ export const EventPageSchema = z.object({
   where: z.string().trim().max(200).default(''),
   whereUrl: z.union([z.literal(''), z.string().trim().url().max(2048)]).default(''),
   host: z.string().trim().max(300).default(''),
-  body: z.string().max(50_000).default(''),
+  // 'html' from the rich editor (sanitised on render); 'markdown' for pages saved before it.
+  format: z.enum(['markdown', 'html']).default('markdown'),
+  body: z.string().max(200_000).default(''),
   hero: z.string().trim().max(2048).default(''),
   accent: z.string().trim().regex(/^#[0-9a-f]{6}$/i, 'Accent must be a #rrggbb color').default('#ea580c'),
   background: z.enum(EVENT_PAGE_BACKGROUNDS).default('undefined'),
@@ -31,26 +33,17 @@ export function defaultEventPage(title = ''): EventPage {
     where: '',
     whereUrl: '',
     host: 'Brought to you by Undefined.',
-    body: `## What to Expect
-
-- Something for everyone.
-- Consent is sexy — and being impaired means you can't consent.
-
-## Getting In
-
-Add parking or entry directions here. Use **Insert image** for a map or photo.
-
-## RSVP
-
-Grab your spot:
-
-[RSVP](/rsvp)
-
-> ### Support the event
-> This event is pay-what-you-can. Your donation helps cover the venue and supplies.
->
-> [Donate — Pay What You Can](/donate)
-`,
+    format: 'html',
+    body: [
+      '<h2>What to Expect</h2>',
+      '<ul><li><p>Something for everyone.</p></li><li><p>Consent is sexy — and being impaired means you can\'t consent.</p></li></ul>',
+      '<h2>Getting In</h2>',
+      '<p>Add parking or entry directions here. Use the image button to add a map or photo.</p>',
+      '<h2>RSVP</h2>',
+      '<p>Grab your spot:</p>',
+      '<p><a class="button" href="/rsvp">RSVP</a></p>',
+      '<aside class="callout"><h3>Support the event</h3><p>Undefined is a nonprofit and relies on your donations to run events like these. To keep more events coming, please consider donating <strong>$10</strong>.</p><p><a class="button" href="/donate">Donate $10</a></p></aside>',
+    ].join(''),
     hero: '',
     accent: '#ea580c',
     background: 'undefined',

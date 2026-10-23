@@ -50,7 +50,7 @@ const defaultValues = createLinkFormInitialValues(props.link)
 // undefined-charity fork: optional event page served at this link.
 const eventPageEnabled = ref(false)
 const hadEventPage = ref(false)
-const eventPage = ref<EventPage>({ title: '', when: '', where: '', whereUrl: '', host: '', body: '', hero: '', accent: '#ea580c', background: 'undefined' })
+const eventPage = ref<EventPage>({ title: '', when: '', where: '', whereUrl: '', host: '', format: 'html', body: '', hero: '', accent: '#ea580c', background: 'undefined' })
 
 if (props.isEdit && props.link.slug) {
   useAPI<{ page: EventPage }>('/api/page', { query: { slug: props.link.slug } })
