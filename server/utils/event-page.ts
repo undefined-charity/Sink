@@ -40,9 +40,12 @@ export async function listEventPageSlugs(event: H3Event): Promise<string[]> {
 
 export function renderEventPageForRequest(event: H3Event, slug: string, page: EventPage): string {
   const domains = parseShortDomains(useRuntimeConfig(event).public.shortDomains)
-  // Uploads and theme files are served by Sink's own host; the rewrite Worker
-  // hands requests over with that hostname.
-  const assetOrigin = getRequestURL(event).origin
+  // Uploads and theme files live on Sink's own host (the primary short
+  // domain). Requests arriving through the rewrite Worker keep the visitor's
+  // Host header, so the request origin may be a subdomain that would turn
+  // /_assets/... into a slug.
+  const primary = domains.find(d => !d.prefix)
+  const assetOrigin = primary ? `https://${primary.domain}` : getRequestURL(event).origin
   const shortUrl = (s: string) => slugToShortUrl(s, domains, assetOrigin)
   return renderEventPageHtml(page, { slug, pageUrl: shortUrl(slug), assetOrigin, shortUrl })
 }

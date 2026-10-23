@@ -116,9 +116,6 @@ html[data-bg="undefined"] body::before{content:"";position:absolute;inset:0 0 au
 html[data-bg="light"] body::before{content:"";position:absolute;inset:0 0 auto 0;height:420px;background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 35%,#fff),#fff);z-index:-1}
 html[data-bg="dark"] body::before{content:"";position:absolute;inset:0 0 auto 0;height:420px;background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 45%,#111114),#111114);z-index:-1}
 a{color:inherit}
-.bar{max-width:1160px;margin:16px auto 0;padding:14px 22px;border-radius:12px;background:rgba(255,255,255,.35);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 1px 3px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:space-between;font-weight:600}
-html[data-bg="dark"] .bar{background:rgba(0,0,0,.3)}
-.bar a{text-decoration:none}
 main{max-width:768px;margin:48px auto 64px;padding:0 16px}
 .card{background:var(--card);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.15);padding:32px}
 .when{margin:0 0 4px;color:color-mix(in srgb,var(--accent) 75%,#fff);font-size:14px;text-transform:uppercase;letter-spacing:.02em}
@@ -153,7 +150,6 @@ footer nav a:hover{opacity:1;text-decoration:underline}
 </style>
 </head>
 <body>
-<header class="bar"><a href="https://undefined.charity">Undefined</a><a href="https://undefined.charity/events">Events</a></header>
 <main>
 <article class="card">
 ${page.when ? `<p class="when">${e(page.when)}</p>` : ''}

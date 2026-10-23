@@ -51,6 +51,11 @@ const defaultValues = createLinkFormInitialValues(props.link)
 const eventPageEnabled = ref(false)
 const hadEventPage = ref(false)
 const eventPage = ref<EventPage>({ title: '', when: '', where: '', whereUrl: '', host: '', format: 'html', body: '', hero: '', accent: '#ea580c', background: 'undefined' })
+// The page lives outside the link form, so its edits must count as unsaved
+// changes too (they enable Save and the close-without-saving warning).
+const eventPageSnapshot = () => (eventPageEnabled.value ? JSON.stringify(eventPage.value) : 'off')
+const savedEventPage = ref('off')
+const eventPageDirty = computed(() => eventPageSnapshot() !== savedEventPage.value)
 
 if (props.isEdit && props.link.slug) {
   useAPI<{ page: EventPage }>('/api/page', { query: { slug: props.link.slug } })
@@ -58,6 +63,7 @@ if (props.isEdit && props.link.slug) {
       eventPage.value = page
       eventPageEnabled.value = true
       hadEventPage.value = true
+      savedEventPage.value = eventPageSnapshot()
     })
     .catch(() => {})
 }
@@ -66,10 +72,12 @@ async function saveEventPage(slug: string) {
   if (eventPageEnabled.value) {
     await useAPI('/api/page', { method: 'PUT', body: { slug, page: eventPage.value } })
     hadEventPage.value = true
+    savedEventPage.value = eventPageSnapshot()
   }
   else if (hadEventPage.value) {
     await useAPI('/api/page', { method: 'DELETE', query: { slug } })
     hadEventPage.value = false
+    savedEventPage.value = 'off'
   }
 }
 
@@ -117,7 +125,7 @@ const isDirty = form.useStore(state => !state.isDefaultValue)
 const tagsInput = useTemplateRef<{ commit: () => boolean }>('tagsInput')
 
 watch(isSubmitting, value => emit('update:submitting', value), { immediate: true })
-watch(isDirty, value => emit('update:dirty', value), { immediate: true })
+watch(() => isDirty.value || eventPageDirty.value, value => emit('update:dirty', value), { immediate: true })
 
 const validateSlugValue = makeZodValidator(slugValidator)
 function validateSlug(context: { value: unknown }) {
