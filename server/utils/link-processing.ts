@@ -140,5 +140,8 @@ export async function replaceLink(event: H3Event, link: EditLink): Promise<LinkR
 
 export async function removeLink(event: H3Event, slug: string): Promise<void> {
   assertLinkWritesAllowed(event, 'delete')
-  await deleteLink(event, normalizeSlug(event, slug))
+  const normalized = normalizeSlug(event, slug)
+  await deleteLink(event, normalized)
+  // undefined-charity fork: a deleted link takes its event page with it.
+  await deleteEventPage(event, normalized)
 }

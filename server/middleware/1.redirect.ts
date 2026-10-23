@@ -189,6 +189,15 @@ export default eventHandler(async (event) => {
         }
       }
 
+      // undefined-charity fork: a link with an event page serves the page
+      // (counted above like any visit) instead of redirecting.
+      const eventPage = await getEventPage(event, link.slug, linkCacheTtl)
+      if (eventPage) {
+        setHeader(event, 'Content-Type', 'text/html; charset=utf-8')
+        setHeader(event, 'Cache-Control', 'no-store')
+        return renderEventPageForRequest(event, link.slug, eventPage)
+      }
+
       if (deviceRedirectUrl) {
         if (redirectNoStore)
           setHeader(event, 'Cache-Control', 'no-store')

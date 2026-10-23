@@ -62,3 +62,32 @@ export function useLinkLabels() {
 
   return { isDeleted, linkLabel }
 }
+
+/** Slugs of links that serve an event page (badge on link cards). */
+export function useEventPageSlugs() {
+  const slugs = useState<string[] | null>('event-page-slugs', () => null)
+  const loading = useState('event-page-slugs-loading', () => false)
+
+  async function load(force = false) {
+    if ((slugs.value && !force) || loading.value)
+      return
+    loading.value = true
+    try {
+      slugs.value = (await useAPI<{ slugs: string[] }>('/api/page/list')).slugs
+    }
+    catch (error) {
+      console.error(error)
+    }
+    finally {
+      loading.value = false
+    }
+  }
+
+  if (import.meta.client) {
+    void load()
+    useDashboardLinksStore().onLinkUpdate(() => void load(true))
+  }
+
+  const set = computed(() => new Set(slugs.value ?? []))
+  return { hasEventPage: (slug: string) => set.value.has(slug) }
+}

@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import type { EventPage } from '#shared/schemas/event-page'
 import type { DashboardLink } from '@/types/dashboard-links'
 import { ExternalLink, Shuffle, Sparkles } from '@lucide/vue'
 import { useForm } from '@tanstack/vue-form'
 import { useDebounceFn } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import { z } from 'zod'
+import { EventPageSchema } from '#shared/schemas/event-page'
 import { MAX_URL_LENGTH, nanoid, SlugSchema } from '#shared/schemas/link'
 import { buildSlug, isValidShortSubdomain, primaryShortDomain } from '#shared/utils/short-domains'
 
@@ -45,9 +47,43 @@ const generateSlug = nanoid()
 
 const defaultValues = createLinkFormInitialValues(props.link)
 
+// undefined-charity fork: optional event page served at this link.
+const eventPageEnabled = ref(false)
+const hadEventPage = ref(false)
+const eventPage = ref<EventPage>({ title: '', when: '', where: '', whereUrl: '', host: '', body: '', hero: '', accent: '#ea580c', background: 'undefined' })
+
+if (props.isEdit && props.link.slug) {
+  useAPI<{ page: EventPage }>('/api/page', { query: { slug: props.link.slug } })
+    .then(({ page }) => {
+      eventPage.value = page
+      eventPageEnabled.value = true
+      hadEventPage.value = true
+    })
+    .catch(() => {})
+}
+
+async function saveEventPage(slug: string) {
+  if (eventPageEnabled.value) {
+    await useAPI('/api/page', { method: 'PUT', body: { slug, page: eventPage.value } })
+    hadEventPage.value = true
+  }
+  else if (hadEventPage.value) {
+    await useAPI('/api/page', { method: 'DELETE', query: { slug } })
+    hadEventPage.value = false
+  }
+}
+
 const form = useForm({
   defaultValues,
   onSubmit: async ({ value }) => {
+    if (eventPageEnabled.value) {
+      const checked = EventPageSchema.safeParse(eventPage.value)
+      if (!checked.success) {
+        toast.error('Event page', { description: checked.error.issues[0]?.message })
+        return
+      }
+      eventPage.value = checked.data
+    }
     try {
       const linkData = normalizeLinkFormSubmitPayload(value, props.isEdit)
       const { link: newLink } = await useAPI<{ link: DashboardLink }>(
@@ -57,6 +93,14 @@ const form = useForm({
           body: linkData,
         },
       )
+      try {
+        await saveEventPage(newLink.slug)
+      }
+      catch (error) {
+        toast.error('The link was saved, but the event page was not', {
+          description: error instanceof Error ? error.message : String(error),
+        })
+      }
       emit('success', newLink)
       toast(props.isEdit ? t('links.update_success') : t('links.create_success'))
     }
@@ -143,6 +187,11 @@ function syncPickedSlug() {
 }
 
 watch([urlDomain, urlSub, urlPath], syncPickedSlug)
+
+watch(eventPageEnabled, (on) => {
+  if (on && !form.getFieldValue('url'))
+    form.setFieldValue('url', 'https://undefined.charity')
+})
 
 const aiSlugPending = ref(false)
 async function aiSlug() {
@@ -324,6 +373,9 @@ defineExpose({ initializeRandomSlug })
                 <ExternalLink aria-hidden="true" class="size-4" />
               </NuxtLink>
             </FieldDescription>
+            <FieldDescription v-else-if="!isInvalid(field) && eventPageEnabled">
+              With the event page on, this URL is only used if the page is switched off.
+            </FieldDescription>
             <FieldDescription v-else-if="!isInvalid(field)">
               {{ $t('links.form.url_description', { max: MAX_URL_LENGTH.toLocaleString(locale) }) }}
             </FieldDescription>
@@ -472,6 +524,14 @@ defineExpose({ initializeRandomSlug })
           />
         </form.Field>
       </FieldGroup>
+
+      <DashboardLinksEditorEventPage
+        v-model:enabled="eventPageEnabled"
+        v-model:page="eventPage"
+        :slug="currentSlug"
+        :id-prefix="formId"
+        :title-hint="form.getFieldValue('comment') || ''"
+      />
 
       <DashboardLinksEditorAdvanced
         v-model:open-sections="advancedSections"

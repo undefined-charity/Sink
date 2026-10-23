@@ -69,6 +69,8 @@ const retryCounters = inject(RETRY_LINK_COUNTERS_KEY)
 const countersError = computed(() => counterErrorIds?.value.has(props.link.id) ?? false)
 
 const { shortUrl, shortUrlLabel } = useShortDomains()
+const { hasEventPage } = useEventPageSlugs()
+const isEventPage = computed(() => hasEventPage(props.link.slug))
 
 function getLinkHost(url: string): string | undefined {
   const { host } = parseURL(url)
@@ -200,10 +202,10 @@ function copyLink() {
 
           <Button as-child variant="ghost" :size="isDesktop ? 'icon' : 'icon-lg'">
             <a
-              :href="link.url"
+              :href="isEventPage ? shortLink : link.url"
               target="_blank"
               rel="noopener noreferrer"
-              :aria-label="link.url"
+              :aria-label="isEventPage ? shortLink : link.url"
             >
               <LinkIcon aria-hidden="true" />
             </a>
@@ -319,7 +321,8 @@ function copyLink() {
             </TooltipProvider>
           </template>
           <Separator orientation="vertical" />
-          <span class="min-w-0 truncate">{{ link.url }}</span>
+          <span v-if="isEventPage" class="min-w-0 truncate font-medium" title="Serves an event page">📄 Event page</span>
+          <span v-else class="min-w-0 truncate">{{ link.url }}</span>
         </div>
         <div
           v-if="tags.length || countersMap"
