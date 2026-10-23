@@ -42,7 +42,7 @@ export function defaultEventPage(title = ''): EventPage {
       '<h2>RSVP</h2>',
       '<p>Grab your spot:</p>',
       '<p><a class="button" href="/rsvp">RSVP</a></p>',
-      '<aside class="callout"><h3>Support the event</h3><p>Undefined is a nonprofit and relies on your donations to run events like these. To keep more events coming, please consider donating <strong>$10</strong>.</p><p><a class="button" href="/donate">Donate $10</a></p></aside>',
+      '<aside class="callout"><h3>Support the event</h3><p>Undefined is a nonprofit and relies on your donations to run events like these. To keep more events coming, please consider donating <strong>$10</strong>.</p><p><a class="button" href="/donate">Donate</a></p></aside>',
     ].join(''),
     hero: '',
     accent: '#ea580c',
